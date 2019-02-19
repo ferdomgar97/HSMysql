@@ -48,8 +48,8 @@ NAMEEXPANSION         | Carácter                    | 70 variable  | -     | S�
 • Entidad MECANICA.
   o Atributos: codMecanica, descriptionMechanic.
     ▪ Las mecánicas se diferencian por su código de nombre.
-    ▪ Las mecánicas son asociadas a 1 o varias cartas
+    ▪ Las mecánicas son asociadas a 1 o varias cartas.
 Atributo              | Tipo de dato                | Rango        | Clave | Obligatorio
-CODMECHANIC	          | Número entero sin signo     | De 1 a 30    | Sí    | Sí
+CODMECHANIC           | Número entero sin signo     | De 1 a 30    | Sí    | Sí
 DESCRIPTIONMECHANIC   | Carácter                    | 70 variable  | -     | No
 
