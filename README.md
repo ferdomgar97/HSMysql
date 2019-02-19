@@ -1,0 +1,2 @@
+# HSMysql
+Hearthstone SQL Database
