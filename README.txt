@@ -1,5 +1,5 @@
-﻿# HSMysql
-Hearthstone SQL Database
+# HSMysql
+## Hearthstone SQL Database
 
 Base de datos del juego de cartas coleccionables Hearthstone de la empresa Blizzard Entertainment.
 Este videojuego se basa en el universo imaginario de Warcraft, otro de los videojuegos de esta empresa.
