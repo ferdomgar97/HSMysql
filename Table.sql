@@ -1,5 +1,5 @@
 /* Fernando Domínguez García */
-/* Proyecto de base de datos de Hearthstone */
+/* Proyecto de base de datos de Hearthstone en MySQL */
 /* Crea la base de datos */
 drop database if exists hearthstone;
 create database hearthstone;
@@ -2776,3 +2776,53 @@ where codCard in (573, 753, 775, 776, 777, 778, 780, 781, 852, 855, 857, 870, 87
 update mechanic
 	set descriptionMechanic = NULL
 where codMechanic = "Choose One";
+
+/* Vistas 0/2 */
+
+/* Procedimientos 0/5 */
+drop table if exists deck;
+create table deck(nameCard varchar(50), Heroe varchar(20), cantidad smallint(1) default 1);
+
+delimiter $$
+drop procedure if exists p_createdeck $$
+create procedure p_createdeck(in par_codHeroe varchar(20))
+begin
+
+	declare par_contador smallint unsigned default 0;
+    declare par_nameCard varchar(50);
+    declare par_codCard int;
+    declare cantidad smallint(2) default 0;
+    
+    truncate table deck;
+    while par_contador < 30 do /* Crea el mazo */
+		set par_codCard = floor((select count(*) from Card) * rand()); /* Selecciona la carta*/
+        /* Limitador de Clase */
+        if ((select play_codHeroe from play where play_codCard = par_codCard) = par_codHeroe) or 
+        ((select play_codHeroe from play where play_codCard = par_codCard) = "Everyone") then
+        /* Fin limitador de clase */
+			set par_nameCard = (select nameCard from Card where codCard = par_codCard);/* Establece el nombre */
+            /* Limitador de Cartas*/
+            set cantidad = (select cantidad from deck where nameCard = par_nameCard);
+            case cantidad
+				when 1 then 
+					if (select rarity from card where par_codCard = codCard) = "Legendary" then set par_contador = par_contador -1;
+                    else update deck set cantidad = "2" where nameCard = par_nameCard;
+                    end if;
+                when 2 then set par_contador = par_contador -1;
+                else insert into deck values(par_nameCard, (select play_codHeroe from play where play_codCard = par_codCard), "1");
+			end case;
+            /* Fin limitador de Cartas*/
+			set par_contador = par_contador +1;
+		end if;
+	end while;
+end; $$
+
+call p_createdeck("Druid");
+
+select * from deck;
+
+select count(*) from deck;
+
+/* Funciones 0/5 */
+
+/*Disparadores 0/5 */
