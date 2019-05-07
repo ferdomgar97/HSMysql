@@ -2777,18 +2777,40 @@ update mechanic
 where codMechanic = "Choose One";
 
 
-/* Vistas 1/2 */
+/* Vistas 3/2 */
+create view v_deck as select *, count(*) as 'Number' from deck group by nameCard;
 
 
 /* Procedimientos 2/5 */
 
 /* Creado de la tabla "deck" para el procedimiento */
+
+delimiter $$
+drop procedure if exists p_legendaryFilter $$
+create procedure p_legendaryFilter()
+begin
+	/* Creado de la vista que comprueba si existen legendarias repetidas */
+	create view v_legendariasrepetidas as select count(*) from deck where Rarity like 'Legendary' group by nameCard having count(*) > 1;
+if (select count(*) from v_legendariasrepetidas)>= 1 then truncate table deck;
+end if;
+drop view v_legendariasrepetidas;
+end; $$
+
+
+drop procedure if exists p_counter $$
+create procedure p_counter()
+begin
+	create view v_conter as select count(*) from deck group by nameCard having count(*) > 2;
+if (select count(*) from v_conter)>= 1 then truncate table deck;
+end if;
+drop view v_conter;
+end; $$
 drop table if exists deck;
 create table deck(nameCard varchar(50), Heroe varchar(20), Rarity varchar(20));
 
 set max_sp_recursion_depth=255; /* Cambio del limite de recursividad */
 
-delimiter $$
+
 drop procedure if exists p_createdeck $$
 create procedure p_createdeck(in par_codHeroe varchar(20))
 begin
@@ -2812,24 +2834,13 @@ begin
 				set par_contador = par_contador +1;
 			end if;
 		end while;
-	/* Filtro de legendarias */
+	/* Filtros*/
+	call p_counter();
     call p_legendaryFilter(); 
     if (select count(*) from deck) = 0 then call p_createdeck(par_codHeroe);
 	end if;
-	/* Fin del filtro de legendarias */
+	/* Fin de filtros*/
 end; $$
-
-delimiter $$
-drop procedure if exists p_legendaryFilter $$
-create procedure p_legendaryFilter()
-begin
-	/* Creado de la vista que comprueba si existen legendarias repetidas */
-	create view v_legendariasrepetidas as select count(*) from deck where Rarity like 'Legendary' group by nameCard having count(*) > 1;
-if (select count(*) from v_legendariasrepetidas)>= 1 then truncate table deck;
-end if;
-drop view v_legendariasrepetidas;
-end; $$
-
 
 /* Funciones 0/5 */
 
