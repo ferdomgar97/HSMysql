@@ -2768,7 +2768,6 @@ Insert into Have values (880,"Windfury");
 
 /* Actualización para los valores NULL */
 
-
 update card
 	set descriptionCard = NULL
 where codCard in (573, 753, 775, 776, 777, 778, 780, 781, 852, 855, 857, 870, 875, 884, 892, 899, 904);
@@ -2777,11 +2776,17 @@ update mechanic
 	set descriptionMechanic = NULL
 where codMechanic = "Choose One";
 
-/* Vistas 0/2 */
 
-/* Procedimientos 0/5 */
+/* Vistas 1/2 */
+
+
+/* Procedimientos 2/5 */
+
+/* Creado de la tabla "deck" para el procedimiento */
 drop table if exists deck;
-create table deck(nameCard varchar(50), Heroe varchar(20), cantidad smallint(1) default 1);
+create table deck(nameCard varchar(50), Heroe varchar(20), Rarity varchar(20));
+
+set max_sp_recursion_depth=255; /* Cambio del limite de recursividad */
 
 delimiter $$
 drop procedure if exists p_createdeck $$
@@ -2791,38 +2796,42 @@ begin
 	declare par_contador smallint unsigned default 0;
     declare par_nameCard varchar(50);
     declare par_codCard int;
-    declare cantidad smallint(2) default 0;
     
     truncate table deck;
-    while par_contador < 30 do /* Crea el mazo */
-		set par_codCard = floor((select count(*) from Card) * rand()); /* Selecciona la carta*/
-        /* Limitador de Clase */
-        if ((select play_codHeroe from play where play_codCard = par_codCard) = par_codHeroe) or 
-        ((select play_codHeroe from play where play_codCard = par_codCard) = "Everyone") then
-        /* Fin limitador de clase */
-			set par_nameCard = (select nameCard from Card where codCard = par_codCard);/* Establece el nombre */
-            /* Limitador de Cartas*/
-            set cantidad = (select cantidad from deck where nameCard = par_nameCard);
-            case cantidad
-				when 1 then 
-					if (select rarity from card where par_codCard = codCard) = "Legendary" then set par_contador = par_contador -1;
-                    else update deck set cantidad = "2" where nameCard = par_nameCard;
-                    end if;
-                when 2 then set par_contador = par_contador -1;
-                else insert into deck values(par_nameCard, (select play_codHeroe from play where play_codCard = par_codCard), "1");
-			end case;
-            /* Fin limitador de Cartas*/
-			set par_contador = par_contador +1;
-		end if;
-	end while;
+		while par_contador < 30 do /* Crea el mazo */
+			set par_codCard = floor((select count(*) from Card) * rand()); /* Selecciona la carta*/
+			/* Limitador de Clase */
+			if ((select play_codHeroe from play where play_codCard = par_codCard) = par_codHeroe) or 
+			((select play_codHeroe from play where play_codCard = par_codCard) = "Everyone") then
+			/* Fin limitador de clase */
+				set par_nameCard = (select nameCard from Card where codCard = par_codCard);/* Establece el nombre */
+				insert into deck values (
+					par_nameCard,
+					(select play_codHeroe from play where play_codCard = par_codCard),
+					(select rarity from card where par_codCard = codCard) );
+				set par_contador = par_contador +1;
+			end if;
+		end while;
+	/* Filtro de legendarias */
+    call p_legendaryFilter(); 
+    if (select count(*) from deck) = 0 then call p_createdeck(par_codHeroe);
+	end if;
+	/* Fin del filtro de legendarias */
 end; $$
 
-call p_createdeck("Druid");
+delimiter $$
+drop procedure if exists p_legendaryFilter $$
+create procedure p_legendaryFilter()
+begin
+	/* Creado de la vista que comprueba si existen legendarias repetidas */
+	create view v_legendariasrepetidas as select count(*) from deck where Rarity like 'Legendary' group by nameCard having count(*) > 1;
+if (select count(*) from v_legendariasrepetidas)>= 1 then truncate table deck;
+end if;
+drop view v_legendariasrepetidas;
+end; $$
 
-select * from deck;
-
-select count(*) from deck;
 
 /* Funciones 0/5 */
+
 
 /*Disparadores 0/5 */
