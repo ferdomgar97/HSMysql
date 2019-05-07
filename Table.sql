@@ -2777,8 +2777,7 @@ update mechanic
 where codMechanic = "Choose One";
 
 
-/* Procedimientos 3/5 */
-
+/* Procedimientos 4/5 */
 
 delimiter $$
 drop procedure if exists p_legendaryFilter $$
@@ -2842,9 +2841,27 @@ end; $$
 
 
 drop procedure if exists p_beaheroe $$
-create procedure p_beaheroe(in par_classHeroe varchar(20), in par_nameHeroe varchar(20))
+create procedure p_beaheroe(in par_nameHeroe varchar(20))
 begin
-insert into heroe values (par_classHeroe ,par_nameHeroe);
+declare par_randomClass smallint unsigned default 0;
+declare par_classHeroe varchar(20);
+
+while par_randomClass= 0 do
+	set par_randomClass = floor(9 * rand());
+end while;
+case par_randomClass
+	when 1 then set par_classHeroe = "Druid";
+	when 2 then set par_classHeroe = "Hunter";
+	when 3 then set par_classHeroe = "Mage";
+	when 4 then set par_classHeroe = "Paladin";
+	when 5 then set par_classHeroe = "Priest";
+	when 6 then set par_classHeroe = "Rogue";
+	when 7 then set par_classHeroe = "Shaman";
+	when 8 then set par_classHeroe = "Warlock";
+	when 9 then set par_classHeroe = "warrior";
+end case;
+update heroe set nameHeroe = par_nameHeroe
+	where codHeroe = par_classHeroe;
 end; $$
 
 
