@@ -6,14 +6,14 @@ create database hearthstone;
 use hearthstone;
 
 /* Borrado de tablas si existieran */
-
-drop table if exists expansion;
-drop table if exists heroe;
-drop table if exists heroepower;
-drop table if exists card;
-drop table if exists mechanic;
-drop table if exists play;
 drop table if exists have;
+drop table if exists play;
+drop table if exists mechanic;
+drop table if exists card;
+drop table if exists heroepower;
+drop table if exists heroe;
+drop table if exists expansion;
+
 
 /* Creación de tablas */
 
@@ -21,14 +21,14 @@ create table expansion(
 	codExpansion int auto_increment,
 	nameExpansion varchar (70) not null,
 	primary key (codExpansion)
-);
+)ENGINE=InnoDB;
 
 
 create table heroe(
 	codHeroe varchar (20),
 	nameHeroe varchar (60) not null,
 	primary key (codHeroe)
-);
+)ENGINE=InnoDB;
 
 
 create table heroepower(
@@ -41,7 +41,7 @@ create table heroepower(
 		foreign key (heroepower_codHeroe)
 		references heroe (codHeroe)
 	on delete cascade on update cascade
-);
+)ENGINE=InnoDB;
 
 create table card(
 	codCard int auto_increment not null,
@@ -59,14 +59,14 @@ create table card(
 		foreign key (card_codExpansion)
 		references expansion (codExpansion)
 	on delete cascade on update cascade
-);
+)ENGINE=InnoDB;
 
 
 create table mechanic(
 	codMechanic varchar (30),
 	descriptionMechanic varchar (70),
 	primary key (codMechanic)
-);
+)ENGINE=InnoDB;
 
 
 create table play(
@@ -83,7 +83,7 @@ create table play(
 		foreign key (play_codCard)
 		references card (codCard)
 	on delete cascade on update cascade
-);
+)ENGINE=InnoDB;
 
 
 create table have(
@@ -100,7 +100,7 @@ create table have(
 		foreign key (have_codMechanic)
 		references mechanic (codMechanic)
 	on delete cascade on update cascade
-);
+)ENGINE=InnoDB;
 
 
 /* Introducción de los datos a la base de datos */
@@ -2777,13 +2777,8 @@ update mechanic
 where codMechanic = "Choose One";
 
 
-/* Vistas 3/2 */
-create view v_deck as select *, count(*) as 'Number' from deck group by nameCard;
+/* Procedimientos 3/5 */
 
-
-/* Procedimientos 2/5 */
-
-/* Creado de la tabla "deck" para el procedimiento */
 
 delimiter $$
 drop procedure if exists p_legendaryFilter $$
@@ -2805,10 +2800,13 @@ if (select count(*) from v_conter)>= 1 then truncate table deck;
 end if;
 drop view v_conter;
 end; $$
-drop table if exists deck;
-create table deck(nameCard varchar(50), Heroe varchar(20), Rarity varchar(20));
 
-set max_sp_recursion_depth=255; /* Cambio del limite de recursividad */
+
+/* Creado de la tabla "deck" para el procedimiento */
+drop table if exists deck $$
+create table deck(nameCard varchar(50), Heroe varchar(20), Rarity varchar(20))ENGINE=InnoDB $$
+
+set max_sp_recursion_depth=255 $$ /* Cambio del limite de recursividad */
 
 
 drop procedure if exists p_createdeck $$
@@ -2841,6 +2839,18 @@ begin
 	end if;
 	/* Fin de filtros*/
 end; $$
+
+
+drop procedure if exists p_beaheroe $$
+create procedure p_beaheroe(in par_classHeroe varchar(20), in par_nameHeroe varchar(20))
+begin
+insert into heroe values (par_classHeroe ,par_nameHeroe);
+end; $$
+
+
+/* Vistas 3/2 */
+create view v_deck as select *, count(*) as 'Number' from deck group by nameCard $$
+
 
 /* Funciones 0/5 */
 
