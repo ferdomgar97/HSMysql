@@ -2836,6 +2836,7 @@ begin
 			/* Fin limitador de clase */
 				set par_nameCard = (select nameCard from Card where codCard = par_codCard);/* Establece el nombre */
 				insert into deck values (
+					par_codCard,
 					par_nameCard,
 					(select play_codHeroe from play where play_codCard = par_codCard),
 					(select rarity from card where par_codCard = codCard) );
