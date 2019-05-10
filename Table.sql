@@ -2855,34 +2855,35 @@ end; $$
 drop procedure if exists p_beaheroe $$
 create procedure p_beaheroe(in par_nameHeroe varchar(20))
 begin
-declare par_randomClass smallint unsigned default 0;
-declare par_classHeroe varchar(20);
 
-while par_randomClass= 0 do
-	set par_randomClass = floor(9 * rand());
-end while;
-case par_randomClass
-	when 1 then set par_classHeroe = "Druid";
-	when 2 then set par_classHeroe = "Hunter";
-	when 3 then set par_classHeroe = "Mage";
-	when 4 then set par_classHeroe = "Paladin";
-	when 5 then set par_classHeroe = "Priest";
-	when 6 then set par_classHeroe = "Rogue";
-	when 7 then set par_classHeroe = "Shaman";
-	when 8 then set par_classHeroe = "Warlock";
-	when 9 then set par_classHeroe = "warrior";
-end case;
-update heroe set nameHeroe = par_nameHeroe
-	where codHeroe = par_classHeroe;
+	declare par_randomClass smallint unsigned default 0;
+	declare par_classHeroe varchar(20);
+
+	while par_randomClass= 0 do
+		set par_randomClass = floor(9 * rand());
+	end while;
+	case par_randomClass
+		when 1 then set par_classHeroe = "Druid";
+		when 2 then set par_classHeroe = "Hunter";
+		when 3 then set par_classHeroe = "Mage";
+		when 4 then set par_classHeroe = "Paladin";
+		when 5 then set par_classHeroe = "Priest";
+		when 6 then set par_classHeroe = "Rogue";
+		when 7 then set par_classHeroe = "Shaman";
+		when 8 then set par_classHeroe = "Warlock";
+		when 9 then set par_classHeroe = "Warrior";
+	end case;
+	update heroe set nameHeroe = par_nameHeroe
+		where codHeroe = par_classHeroe;
 end; $$
 
 
-/* Vistas 3/2 */
+/* Vistas */
 drop view if exists v_deck $$
 create view v_deck as select nameCard, Heroe, Rarity, count(*) as 'Number' from deck group by nameCard $$
 
 
-/* Funciones 1/5 */
+/* Funciones 2/5 */
 SET GLOBAL log_bin_trust_function_creators = 1 $$ /* Permisos para crear funciones */
 
 drop function if exists f_AvgManaCostDeck $$
@@ -2908,4 +2909,43 @@ begin
 	return counter;
 end; $$	
 
-/*Disparadores 0/5 */
+/* Disparadores 4/5 */
+drop trigger if exists t_nullDescriptionCard $$
+create trigger t_nullDescriptionCard
+	before insert on card for each row 
+		if new.descriptionCard like '' then set new.descriptionCard = NULL; 
+        end if; 
+$$
+
+
+drop trigger if exists t_deck $$
+create trigger t_deck 
+	before update on deck for each row 
+    call p_legendaryFilter();
+    call p_counter();
+$$
+
+
+drop trigger if exists t_deckLimiter $$
+create trigger t_deckLimiter 
+	after insert on deck for each row 
+		if (select count(*) from deck) > 30 then
+			delete from deck where deck_codCard = new.deck_codCard;
+		end if;$$
+
+
+drop trigger if exists t_heroeLimiter $$
+create trigger t_heroeLimiter 
+	after insert on heroe for each row 
+		if 
+			new.codHeroe not like 'Druid' or
+			new.codHeroe not like 'Hunter' or
+			new.codHeroe not like 'Mage' or
+			new.codHeroe not like 'Paladin' or
+			new.codHeroe not like 'Priest' or
+			new.codHeroe not like 'Rogue' or
+			new.codHeroe not like 'Shaman' or
+			new.codHeroe not like 'Warlock' or
+			new.codHeroe not like 'Warrior' 
+		then delete from heroe where codHeroe = new.codHeroe;
+    end if;$$
