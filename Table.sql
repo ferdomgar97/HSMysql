@@ -9,6 +9,7 @@ use hearthstone;
 drop table if exists have;
 drop table if exists play;
 drop table if exists mechanic;
+drop table if exists deck;
 drop table if exists card;
 drop table if exists heroepower;
 drop table if exists heroe;
@@ -27,7 +28,7 @@ create table expansion(
 create table heroe(
 	codHeroe varchar (20),
 	nameHeroe varchar (60) not null,
-	primary key (codHeroe)
+	primary key (codHeroe, nameHeroe)
 )ENGINE=InnoDB;
 
 
@@ -51,7 +52,7 @@ create table card(
 	cost smallint(50) not null,
 	damage smallint(50) not null,
 	health smallint(50) not null,
-	descriptionCard varchar (150),
+	descriptionCard varchar (150) default NULL,
 	card_codExpansion int not null,
 	primary key (codCard),
 
@@ -101,6 +102,20 @@ create table have(
 		references mechanic (codMechanic)
 	on delete cascade on update cascade
 )ENGINE=InnoDB;
+
+
+/* Creado de la tabla "deck" para el procedimiento */
+create table deck(
+	deck_codCard int,
+	nameCard varchar(50),
+    Heroe varchar(20),
+    Rarity varchar(20),
+    
+	constraint fk_deck_card
+		foreign key (deck_codCard)
+		references card (codCard)
+	on delete cascade on update cascade
+    )ENGINE=InnoDB;
 
 
 /* Introducción de los datos a la base de datos */
@@ -2801,10 +2816,6 @@ drop view v_conter;
 end; $$
 
 
-/* Creado de la tabla "deck" para el procedimiento */
-drop table if exists deck $$
-create table deck(nameCard varchar(50), Heroe varchar(20), Rarity varchar(20))ENGINE=InnoDB $$
-
 set max_sp_recursion_depth=255 $$ /* Cambio del limite de recursividad */
 
 
@@ -2866,10 +2877,34 @@ end; $$
 
 
 /* Vistas 3/2 */
-create view v_deck as select *, count(*) as 'Number' from deck group by nameCard $$
+drop view if exists v_deck $$
+create view v_deck as select nameCard, Heroe, Rarity, count(*) as 'Number' from deck group by nameCard $$
 
 
-/* Funciones 0/5 */
+/* Funciones 1/5 */
+SET GLOBAL log_bin_trust_function_creators = 1 $$ /* Permisos para crear funciones */
 
+drop function if exists f_AvgManaCostDeck $$
+create function f_AvgManaCostDeck()
+	returns smallint(50)
+begin
+
+	declare avgcost smallint(50);
+    
+    set avgcost = (select floor(avg(cost)) from card inner join deck where codCard = deck_codCard);
+	return avgcost;
+end; $$	
+
+
+drop function if exists f_countLegendary $$
+create function f_countLegendary()
+	returns smallint(100)
+begin
+
+	declare counter smallint(100);
+    
+    set counter = (select count(*) from card where rarity like 'Legendary');
+	return counter;
+end; $$	
 
 /*Disparadores 0/5 */
