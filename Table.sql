@@ -2797,7 +2797,7 @@ where codMechanic = "Choose One";
 drop view if exists v_deck;
 create view v_deck as select nameCard, Heroe, Rarity, count(*) as 'Number' from deck group by nameCard;
 
-/* Procedimientos */
+/* Procedimientos */ /* Crear procedimiento para insertar cartas en deck */
 
 delimiter $$
 drop procedure if exists p_legendaryFilter $$
@@ -2825,7 +2825,7 @@ set max_sp_recursion_depth=255 $$ /* Cambio del limite de recursividad */
 
 
 drop procedure if exists p_createdeck $$
-create procedure p_createdeck(in par_codHeroe varchar(20))
+create procedure p_createdeck(in par_codHeroe varchar(20)) /* Mirar si se puede restringir clase  y si puedes hacer que solo se borre 1 (contador?)*/
 begin
 
 	declare par_contador smallint unsigned default 0;
@@ -2833,6 +2833,9 @@ begin
     declare par_codCard int;
     
     truncate table deck;
+    
+    /* Mirar si se puede restringir clase */
+    
 		while par_contador < 30 do /* Crea el mazo */
 			set par_codCard = floor((select count(*) from Card) * rand()); /* Selecciona la carta*/
 			/* Limitador de Clase */
@@ -2858,7 +2861,7 @@ end; $$
 
 
 drop procedure if exists p_beaheroe $$
-create procedure p_beaheroe(in par_nameHeroe varchar(20))
+create procedure p_beaheroe(in par_nameHeroe varchar(20)) /* Mirar si puedes especificar la clase */
 begin
 
 	declare par_randomClass smallint unsigned default 0;
@@ -2931,13 +2934,14 @@ begin
 
 	declare heroeDeck varchar(50);
     
-    set heroeDeck = (select Heroe from deck where Heroe not like 'Everyone');
+    set heroeDeck = (select distinct Heroe from deck where Heroe not like 'Everyone');
     return heroeDeck;
 end; $$
 
 
 /* Disparadores */
-drop trigger if exists t_nullDescriptionCard $$
+delimiter $$ 
+drop trigger if exists t_nullDescriptionCard $$ /* No funciona como debe */
 create trigger t_nullDescriptionCard
 	before insert on card for each row 
 		if new.descriptionCard like '' then set new.descriptionCard = NULL; 
@@ -2952,7 +2956,7 @@ create trigger t_deck
     call p_counter();
 $$
 
-
+/*
 drop trigger if exists t_deckLimiter $$
 create trigger t_deckLimiter 
 	after insert on deck for each row 
@@ -2963,9 +2967,9 @@ create trigger t_deckLimiter
 			delete from deck where deck_codCard = new.deck_codCard;
 		end if;
         $$
-
-
-drop trigger if exists t_heroeLimiter $$
+*/
+delimiter $$
+drop trigger if exists t_heroeLimiter $$ /* Intentar añadir un heroe*/
 create trigger t_heroeLimiter 
 	after insert on heroe for each row 
 		if 
