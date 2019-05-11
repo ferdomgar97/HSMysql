@@ -2792,7 +2792,12 @@ update mechanic
 where codMechanic = "Choose One";
 
 
-/* Procedimientos 4/5 */
+/* Vistas creadas en los procedimientos */
+
+drop view if exists v_deck;
+create view v_deck as select nameCard, Heroe, Rarity, count(*) as 'Number' from deck group by nameCard;
+
+/* Procedimientos */
 
 delimiter $$
 drop procedure if exists p_legendaryFilter $$
@@ -2878,12 +2883,21 @@ begin
 end; $$
 
 
-/* Vistas */
-drop view if exists v_deck $$
-create view v_deck as select nameCard, Heroe, Rarity, count(*) as 'Number' from deck group by nameCard $$
+drop procedure if exists p_updateVDeck $$
+create procedure p_updateVDeck()
+begin
+	drop view if exists v_deck;
+	create view v_deck as select nameCard, Heroe, Rarity, count(*) as 'Number' from deck group by nameCard;
+end; $$
 
 
-/* Funciones 2/5 */
+/* Evento  */
+create event ev_DelBackupCard
+on schedule every 1 week
+do truncate deck $$
+
+
+/* Funciones 3/5 */
 SET GLOBAL log_bin_trust_function_creators = 1 $$ /* Permisos para crear funciones */
 
 drop function if exists f_AvgManaCostDeck $$
@@ -2909,7 +2923,20 @@ begin
 	return counter;
 end; $$	
 
-/* Disparadores 4/5 */
+
+drop function if exists f_heroeDeck $$
+create function f_heroeDeck()
+	returns varchar(50)
+begin
+
+	declare heroeDeck varchar(50);
+    
+    set heroeDeck = (select Heroe from deck where Heroe not like 'Everyone');
+    return heroeDeck;
+end; $$
+
+
+/* Disparadores */
 drop trigger if exists t_nullDescriptionCard $$
 create trigger t_nullDescriptionCard
 	before insert on card for each row 
@@ -2929,9 +2956,13 @@ $$
 drop trigger if exists t_deckLimiter $$
 create trigger t_deckLimiter 
 	after insert on deck for each row 
-		if (select count(*) from deck) > 30 then
+		if 
+			(select count(*) from deck) > 30 or 
+			new.Heroe not like (select f_heroeDeck())
+        then
 			delete from deck where deck_codCard = new.deck_codCard;
-		end if;$$
+		end if;
+        $$
 
 
 drop trigger if exists t_heroeLimiter $$
@@ -2949,3 +2980,10 @@ create trigger t_heroeLimiter
 			new.codHeroe not like 'Warrior' 
 		then delete from heroe where codHeroe = new.codHeroe;
     end if;$$
+    
+
+drop trigger if exists t_updateVDeck $$
+create trigger t_updateVDeck
+	before update on deck for each row 
+	call p_updateVDeck();
+$$
