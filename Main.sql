@@ -106,10 +106,10 @@ create table have(
 
 /* Creado de la tabla "deck" para el procedimiento */
 create table deck(
-	deck_codCard int,
-	nameCard varchar(50),
-    Heroe varchar(20),
-    Rarity varchar(20),
+	deck_codCard int not null,
+	nameCard varchar(50) not null,
+    Heroe varchar(20) not null,
+    Rarity varchar(20) not null,
     
 	constraint fk_deck_card
 		foreign key (deck_codCard)
@@ -3051,7 +3051,7 @@ create trigger t_deckmaker
 
 /* Disparador que solo permite insertar heroes de las clases existentes */
 drop trigger if exists t_heroeLimiter $$ 
-create trigger t_heroeLimiter /* Intentar añadir un heroe*/
+create trigger t_heroeLimiter 
 	after insert on heroe for each row 
 		if 
 			new.codHeroe not like 'Druid' or
@@ -3064,7 +3064,8 @@ create trigger t_heroeLimiter /* Intentar añadir un heroe*/
 			new.codHeroe not like 'Warlock' or
 			new.codHeroe not like 'Warrior' 
 		then delete from heroe where codHeroe = new.codHeroe;
-    end if;$$
+    end if;
+	$$
  
  
 /* Disparador que actualiza la vista del mazo */

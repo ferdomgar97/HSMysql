@@ -54,7 +54,7 @@ create trigger t_deckmaker
 
 /* Disparador que solo permite insertar heroes de las clases existentes */
 drop trigger if exists t_heroeLimiter $$ 
-create trigger t_heroeLimiter /* Intentar añadir un heroe*/
+create trigger t_heroeLimiter 
 	after insert on heroe for each row 
 		if 
 			new.codHeroe not like 'Druid' or
