@@ -2782,6 +2782,7 @@ Insert into Have values (824,"Windfury");
 Insert into Have values (880,"Windfury");
 
 /* Actualización para los valores NULL */
+SET SQL_SAFE_UPDATES = 0; /* Desactivado de safe update mode */
 
 update card
 	set descriptionCard = NULL
@@ -2794,9 +2795,12 @@ where codMechanic = "Choose One";
 
 /* Vistas */
 
-drop view if exists v_deck;
+/* Vista del mazo*/
+drop view if exists v_deck; 
 create view v_deck as select nameCard, Heroe, Rarity, count(*) as 'Number' from deck group by nameCard;
 
+
+/* Vista de las expansiones de cada carta*/
 drop view if exists v_cardexpansion;
 create view v_cardexpansion as select distinct nameCard, nameExpansion from card inner join expansion where card_codExpansion = codExpansion;
 
@@ -2804,34 +2808,25 @@ create view v_cardexpansion as select distinct nameCard, nameExpansion from card
 
 delimiter $$
 
+/* Procedimiento para insertar cartas */
 drop procedure if exists p_insertaCard $$
 create procedure p_insertaCard(
-	par_codCard int(11), 
-	par_nameCard varchar(50), 
-	par_rarity varchar(20), 
-	par_type varchar(30), 
-	par_cost smallint(50), 
-	par_damage smallint(50), 
-	par_health smallint(50), 
-	par_descriptionCard varchar(150), 
-	par_card_codExpansion int(11) )
+	in par_nameCard varchar(50), 
+	in par_rarity varchar(20), 
+	in par_type varchar(30), 
+	in par_cost smallint(50), 
+	in par_damage smallint(50), 
+	in par_health smallint(50), 
+	in par_descriptionCard varchar(150), 
+	in par_card_codExpansion int(11),
+    in par_play_codHeroe varchar(20))
 begin
-	
-    declare par_codCard int(11);
-	declare par_nameCard varchar(50);
-	declare par_rarity varchar(20);
-	declare par_type varchar(30);
-	declare par_cost smallint(50);
-	declare par_damage smallint(50);
-	declare par_health smallint(50);
-	declare par_descriptionCard varchar(150);
-	declare par_card_codExpansion int(11);
-
 	insert into card values (NULL, par_nameCard, par_rarity, par_type, par_cost, par_damage, par_health, par_descriptionCard, par_card_codExpansion);
-    
+    insert into play values (par_play_codHeroe, (select codCard from card where nameCard = par_nameCard));
 end; $$
 
 
+/* Filtro legendarias del mazo */
 drop procedure if exists p_legendaryFilter $$
 create procedure p_legendaryFilter()
 begin
@@ -2842,6 +2837,7 @@ drop view v_legendariasrepetidas;
 end; $$
 
 
+/* Filtro contador de cartas repetidas del mazo */
 drop procedure if exists p_counter $$
 create procedure p_counter()
 begin
@@ -2854,7 +2850,7 @@ end; $$
 
 set max_sp_recursion_depth=255 $$ /* Cambio del limite de recursividad */
 
-
+/* Procedimiento que genera un mazo aleatorio */
 drop procedure if exists p_createdeck $$
 create procedure p_createdeck(in par_codHeroe varchar(20))
 begin
@@ -2888,32 +2884,39 @@ begin
 end; $$
 
 
+/* Procedimiento que cambia el nombre de un heroe */
 drop procedure if exists p_beaheroe $$
-create procedure p_beaheroe(in par_nameHeroe varchar(20)) /* Mirar si puedes especificar la clase */
+create procedure p_beaheroe(in par_nameHeroe varchar(20), in par_classHeroe varchar (20))
 begin
 
 	declare par_randomClass smallint unsigned default 0;
-	declare par_classHeroe varchar(20);
-
-	while par_randomClass= 0 do
-		set par_randomClass = floor(9 * rand());
-	end while;
-	case par_randomClass
-		when 1 then set par_classHeroe = "Druid";
-		when 2 then set par_classHeroe = "Hunter";
-		when 3 then set par_classHeroe = "Mage";
-		when 4 then set par_classHeroe = "Paladin";
-		when 5 then set par_classHeroe = "Priest";
-		when 6 then set par_classHeroe = "Rogue";
-		when 7 then set par_classHeroe = "Shaman";
-		when 8 then set par_classHeroe = "Warlock";
-		when 9 then set par_classHeroe = "Warrior";
-	end case;
+	
+    if 
+		par_classHeroe like '' or
+        par_classHeroe like 'Aleatorio'
+	then
+		while par_randomClass= 0 do
+			set par_randomClass = floor(9 * rand());
+		end while;
+		case par_randomClass
+			when 1 then set par_classHeroe = "Druid";
+			when 2 then set par_classHeroe = "Hunter";
+			when 3 then set par_classHeroe = "Mage";
+			when 4 then set par_classHeroe = "Paladin";
+			when 5 then set par_classHeroe = "Priest";
+			when 6 then set par_classHeroe = "Rogue";
+			when 7 then set par_classHeroe = "Shaman";
+			when 8 then set par_classHeroe = "Warlock";
+			when 9 then set par_classHeroe = "Warrior";
+		end case;
+	end if;
 	update heroe set nameHeroe = par_nameHeroe
 		where codHeroe = par_classHeroe;
+
 end; $$
 
 
+/* Procedimiento que actualiza la vista del mazo*/
 drop procedure if exists p_updateVDeck $$
 create procedure p_updateVDeck()
 begin
@@ -2922,15 +2925,17 @@ begin
 end; $$
 
 
-/* Evento  */
+/* Evento que vacia el mazo cada semana */
 create event ev_DelBackupCard
 on schedule every 1 week
 do truncate deck $$
 
 
-/* Funciones 3/5 */
+/* Funciones */
+
 SET GLOBAL log_bin_trust_function_creators = 1 $$ /* Permisos para crear funciones */
 
+/* Funcion que calcula la media del coste de mana del mazo */
 drop function if exists f_AvgManaCostDeck $$
 create function f_AvgManaCostDeck()
 	returns smallint(50)
@@ -2943,6 +2948,7 @@ begin
 end; $$	
 
 
+/* Funcion que cuenta el numero de legendarias que existen */
 drop function if exists f_countLegendary $$
 create function f_countLegendary()
 	returns smallint(100)
@@ -2955,6 +2961,7 @@ begin
 end; $$	
 
 
+/* Funcion que indica la clase del mazo */
 drop function if exists f_heroeDeck $$
 create function f_heroeDeck()
 	returns varchar(50)
@@ -2967,16 +2974,43 @@ begin
 end; $$
 
 
+/* Funcion que cuenta el numero de expansiones existentes */
+drop function if exists f_expansion $$
+create function f_expansion()
+	returns smallint(20)
+begin
+
+	declare counter smallint(100);
+    
+    set counter = (select count(*) from expansion where nameExpansion not like 'Classic');
+	return counter;
+end; $$
+
+
+/* Funcion que cuenta el numero de heroes */
+drop function if exists f_heroe $$
+create function f_heroe()
+	returns smallint(20)
+begin
+
+	declare counter smallint(100);
+    
+    set counter = (select count(*) from heroe where codHeroe not like 'Everyone');
+	return counter;
+end; $$
+
 /* Disparadores */
-delimiter $$ 
+
+/* Disparador que cambia las descripciones vacias a NULL */
 drop trigger if exists t_nullDescriptionCard $$
-create trigger t_nullDescriptionCard /* No funciona como debe */
+create trigger t_nullDescriptionCard 
 	before insert on card for each row 
 		if new.descriptionCard like '' then set new.descriptionCard = NULL; 
         end if; 
 $$
 
 
+/* Disparador que se asegura de que el mazo esta bien creado */
 drop trigger if exists t_deck $$
 create trigger t_deck 
 	before update on deck for each row 
@@ -2984,23 +3018,38 @@ create trigger t_deck
     call p_counter();
 $$
 
-delimiter $$
-drop trigger if exists t_deckDel $$
-create trigger t_deckDel 
-	after delete on deck for each row 
-		if 
-			(select count(*) from deck where new.deck_codCard) = 2 then 
-            delete from deck where new.deck_codCard = deck_codCard;
-            insert into deck values (
-				new.deck_codCard,
-                (select nameCard from card where codCard = new.deck_codCard), 
-                (select play_codHeroe from play where play_codCard = new.deck_codCard), 
-                (select rarity from card where codCard = new.deck_codCard));
+
+/* Creador de mazos */
+drop trigger if exists t_deckmaker; $$
+create trigger t_deckmaker 
+	before delete on deck for each row 
+		begin
+		
+        declare par_randomClass smallint unsigned default 0;
+		declare par_classHeroe varchar (20);
+        
+        if (select count(*) from deck) = 0 then
+			while par_randomClass= 0 do
+				set par_randomClass = floor(9 * rand());
+			end while;
+			case par_randomClass
+				when 1 then set par_classHeroe = "Druid";
+				when 2 then set par_classHeroe = "Hunter";
+				when 3 then set par_classHeroe = "Mage";
+				when 4 then set par_classHeroe = "Paladin";
+				when 5 then set par_classHeroe = "Priest";
+				when 6 then set par_classHeroe = "Rogue";
+				when 7 then set par_classHeroe = "Shaman";
+				when 8 then set par_classHeroe = "Warlock";
+				when 9 then set par_classHeroe = "Warrior";
+			end case;
+			call p_createdeck(par_classHeroe);
 		end if;
+    end;
         $$
 
 
-delimiter $$
+/* Disparador que solo permite insertar heroes de las clases existentes */
 drop trigger if exists t_heroeLimiter $$ 
 create trigger t_heroeLimiter /* Intentar añadir un heroe*/
 	after insert on heroe for each row 
@@ -3016,10 +3065,13 @@ create trigger t_heroeLimiter /* Intentar añadir un heroe*/
 			new.codHeroe not like 'Warrior' 
 		then delete from heroe where codHeroe = new.codHeroe;
     end if;$$
-    
-
+ 
+ 
+/* Disparador que actualiza la vista del mazo */
 drop trigger if exists t_updateVDeck $$
 create trigger t_updateVDeck
 	before update on deck for each row 
 	call p_updateVDeck();
 $$
+
+delimiter ;
