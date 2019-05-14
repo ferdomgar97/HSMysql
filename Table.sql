@@ -2792,18 +2792,49 @@ update mechanic
 where codMechanic = "Choose One";
 
 
-/* Vistas creadas en los procedimientos */
+/* Vistas */
 
 drop view if exists v_deck;
 create view v_deck as select nameCard, Heroe, Rarity, count(*) as 'Number' from deck group by nameCard;
 
-/* Procedimientos */ /* Crear procedimiento para insertar cartas en deck */
+drop view if exists v_cardexpansion;
+create view v_cardexpansion as select distinct nameCard, nameExpansion from card inner join expansion where card_codExpansion = codExpansion;
+
+/* Procedimientos */
 
 delimiter $$
+
+drop procedure if exists p_insertaCard $$
+create procedure p_insertaCard(
+	par_codCard int(11), 
+	par_nameCard varchar(50), 
+	par_rarity varchar(20), 
+	par_type varchar(30), 
+	par_cost smallint(50), 
+	par_damage smallint(50), 
+	par_health smallint(50), 
+	par_descriptionCard varchar(150), 
+	par_card_codExpansion int(11) )
+begin
+	
+    declare par_codCard int(11);
+	declare par_nameCard varchar(50);
+	declare par_rarity varchar(20);
+	declare par_type varchar(30);
+	declare par_cost smallint(50);
+	declare par_damage smallint(50);
+	declare par_health smallint(50);
+	declare par_descriptionCard varchar(150);
+	declare par_card_codExpansion int(11);
+
+	insert into card values (NULL, par_nameCard, par_rarity, par_type, par_cost, par_damage, par_health, par_descriptionCard, par_card_codExpansion);
+    
+end; $$
+
+
 drop procedure if exists p_legendaryFilter $$
 create procedure p_legendaryFilter()
 begin
-	/* Creado de la vista que comprueba si existen legendarias repetidas */
 	create view v_legendariasrepetidas as select count(*) from deck where Rarity like 'Legendary' group by nameCard having count(*) > 1;
 if (select count(*) from v_legendariasrepetidas)>= 1 then truncate table deck;
 end if;
@@ -2825,7 +2856,7 @@ set max_sp_recursion_depth=255 $$ /* Cambio del limite de recursividad */
 
 
 drop procedure if exists p_createdeck $$
-create procedure p_createdeck(in par_codHeroe varchar(20)) /* Mirar si se puede restringir clase  y si puedes hacer que solo se borre 1 (contador?)*/
+create procedure p_createdeck(in par_codHeroe varchar(20))
 begin
 
 	declare par_contador smallint unsigned default 0;
@@ -2953,18 +2984,21 @@ create trigger t_deck
     call p_counter();
 $$
 
-/* no funciona adecuadamente */ /*
-drop trigger if exists t_deckLimiter $$
-create trigger t_deckLimiter 
-	after insert on deck for each row 
+delimiter $$
+drop trigger if exists t_deckDel $$
+create trigger t_deckDel 
+	after delete on deck for each row 
 		if 
-			(select count(*) from deck) > 30 or 
-			new.Heroe not like (select f_heroeDeck())
-        then
-			delete from deck where deck_codCard = new.deck_codCard;
+			(select count(*) from deck where new.deck_codCard) = 2 then 
+            delete from deck where new.deck_codCard = deck_codCard;
+            insert into deck values (
+				new.deck_codCard,
+                (select nameCard from card where codCard = new.deck_codCard), 
+                (select play_codHeroe from play where play_codCard = new.deck_codCard), 
+                (select rarity from card where codCard = new.deck_codCard));
 		end if;
         $$
-*/
+
 
 delimiter $$
 drop trigger if exists t_heroeLimiter $$ 
