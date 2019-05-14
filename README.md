@@ -72,3 +72,6 @@ La base de datos incluirá las siguientes entidades y correspondientes atributos
 | CODMECHANIC           | Número entero sin signo     | De 1 a 30    | Sí    | Sí          |       |
 | DESCRIPTIONMECHANIC   | Carácter                    | 70 variable  |       | No          |       |
 
+Además existen las tablas **play, have y deck** para relación entre ellas y uso de procedimientos.
+
+![Diagrama Entidad-Relación MysqlWorkbench](Documentacion/Diagrama%20E-R%20Workbench.png)
